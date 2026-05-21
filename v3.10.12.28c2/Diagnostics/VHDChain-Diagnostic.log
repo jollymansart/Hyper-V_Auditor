@@ -1,0 +1,49 @@
+﻿VHDChain Diagnostic - 05/13/2026 07:04:12
+[07:04:12] === 1. FILE CHECK ===
+[07:04:12] PSD1 exists: True
+[07:04:12] PSM1 exists: True
+[07:04:12] PSD1 size: 604 bytes
+[07:04:12] PSD1 first 3 bytes: 64,123,10 (239,187,191=UTF8-BOM; 123='{'; 64='@')
+[07:04:12] PSD1 contents:
+[07:04:12]   @{
+[07:04:12]       ModuleVersion     = '3.10.12'
+[07:04:12]       GUID              = 'b4c2e8f1-7a3d-4e9b-a1c6-d5f8e0b2c4a7'
+[07:04:12]       Author            = 'Michael George'
+[07:04:12]       CompanyName       = 'OHDC / Delzron'
+[07:04:12]       Description       = 'CR105: VHD parent chain collection and consolidation recommendations. Walks ParentPath recursively per disk per VM. Source of truth for AvhdxChainDepth used by vCheckpoint (CR104).'
+[07:04:12]       PowerShellVersion = '5.1'
+[07:04:12]       FunctionsToExport = @('Invoke-VHDChainCollection', 'Get-VHDChainRecommendation')
+[07:04:12]       PrivateData = @{
+[07:04:12]           PSData = @{ Tags = @('HyperV','VHD','Chain','AVHDX','CR105') }
+[07:04:12]       }
+[07:04:12]   }
+[07:04:12] PSM1 size: 17811 bytes
+[07:04:12] PSM1 first 3 bytes: 35,82,101
+[07:04:12] 
+=== 2. PARSE CHECK ===
+[07:04:12] PSM1 parse errors: 0
+[07:04:12] 
+=== 3. IMPORT TEST (capturing all streams) ===
+[07:04:12] Import-Module completed without terminating exception
+[07:04:12] Import-Module output (1 lines):
+[07:04:12]   VERBOSE: Loading module from path 'E:\Script_Dev\Powershell\Script\Hyper-V\Report\v3.10.12.21\Modules\HyperVInventory-VHDChain.psd1'.
+[07:04:12] 
+=== 4. MODULE STATE AFTER IMPORT ===
+[07:04:12] Get-Module result: Found
+[07:04:12]   Name:             HyperVInventory-VHDChain
+[07:04:12]   Version:          3.10.12
+[07:04:12]   ModuleType:       Manifest
+[07:04:12]   Path:             E:\Script_Dev\Powershell\Script\Hyper-V\Report\v3.10.12.21\Modules\HyperVInventory-VHDChain.psd1
+[07:04:12]   ExportedCommands: 0 -- 
+[07:04:12]   ExportedFunctions:0 -- 
+[07:04:12] 
+=== 5. ALL LOADED MODULES (HyperVInventory*) ===
+[07:04:12]   HyperVInventory-VHDChain v3.10.12 [Manifest] Exports:0 Path:E:\Script_Dev\Powershell\Script\Hyper-V\Report\v3.10.12.21\Modules\HyperVInventory-VHDChain.psd1
+[07:04:12] 
+=== 6. COMPARE: Import PSM1 directly (bypass PSD1) ===
+[07:04:13]   Loading module from path 'E:\Script_Dev\Powershell\Script\Hyper-V\Report\v3.10.12.21\Modules\HyperVInventory-VHDChain.psm1'.
+[07:04:13]   Importing function 'Get-VHDChainRecommendation'.
+[07:04:13]   Importing function 'Invoke-VHDChainCollection'.
+[07:04:13] After PSM1-direct import: Found -- ExportedCommands:2
+[07:04:13] 
+=== DONE -- log saved to: E:\Script_Dev\Powershell\Script\Hyper-V\Report\v3.10.12.21\VHDChain-Diagnostic.log ===

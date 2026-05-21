@@ -1,0 +1,54 @@
+﻿#
+# Module manifest for module 'HyperVInventory-CSVHealth'
+#
+# Part of the HyperV Inventory Report suite
+#
+
+@{
+    RootModule        = 'HyperVInventory-CSVHealth.psm1'
+    ModuleVersion     = '3.10.11'
+    GUID              = 'b4f7a2c9-8e3d-4a51-9f2b-7c6d5e4a3b21'
+    Author            = 'Michael George'
+    CompanyName       = 'Overhead Door Corporation'
+    Copyright         = '(c) 2026 Overhead Door Corporation. Internal use.'
+    Description       = 'Cluster Shared Volume health auditing module for the HyperV Inventory Report suite. Provides filter driver enumeration, CSV redirection state analysis, VM lock diagnostics, and compliance reporting. Read-only; all remediation is produced as script output, never executed.'
+
+    PowerShellVersion = '5.1'
+
+    # Required modules from the host environment
+    RequiredModules   = @(
+        @{ ModuleName = 'FailoverClusters'; ModuleVersion = '2.0.0.0' },
+        @{ ModuleName = 'Hyper-V';          ModuleVersion = '2.0.0.0' }
+    )
+
+    FunctionsToExport = @(
+        'Get-CSVFilterDrivers',
+        'Get-CSVRedirectionState',
+        'Get-CSVHealthSummary',
+        'Test-CSVFilterCompliance',
+        'Get-VMLockDiagnostic',
+        'Export-CSVHealthReport'
+    )
+
+    CmdletsToExport   = @()
+    VariablesToExport = @()
+    AliasesToExport   = @()
+
+    PrivateData = @{
+        PSData = @{
+            Tags         = @('HyperV','CSV','Cluster','FilterDriver','Audit','Inventory','OHD')
+            ReleaseNotes = @'
+1.0.0 - Initial release
+  - Get-CSVFilterDrivers: fltmc enumeration with known-bad database lookup
+  - Get-CSVRedirectionState: FileSystemRedirectedIOReason analysis per-node
+  - Get-CSVHealthSummary: composed cluster-wide health sweep with runspace parallelization
+  - Test-CSVFilterCompliance: pass/fail compliance check
+  - Get-VMLockDiagnostic: VM lock troubleshooting (incorporates Invoke-VMLockDiagnostic v1.1 logic)
+  - Export-CSVHealthReport: EPPlus-based Excel output matching suite conventions
+  - External JSON knowledge base (CSVFilterKnowledgeBase.json)
+  - Cross-domain Negotiate/Kerberos authentication fallback
+  - Read-only by design; remediation is script output, never executed
+'@
+        }
+    }
+}

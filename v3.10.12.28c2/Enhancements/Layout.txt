@@ -1,0 +1,297 @@
+Modules/
+├── Platform/
+│   ├── HyperV/           ← current code moves here
+│   │   ├── HyperVInventory-Core.psm1
+│   │   ├── HyperVInventory-VMActivity.psm1
+│   │   └── ...
+│   ├── VMware/           ← future
+│   └── Nutanix/          ← future
+├── Guest/
+│   ├── Windows/          ← OS.psm1, Windows app collection
+│   ├── Linux/            ← future SSH-based probes
+│   └── Common/           ← ping, DNS, reachability
+├── Domain/
+│   ├── Authentication/   ← ADAuth, Cross-Domain-Auth, KCD
+│   ├── DNS/              ← DNS module, EfficientIP
+│   ├── Storage/          ← S2D, LiveMigration, Storage
+│   └── Compliance/       ← SCCM, Security, TLS
+└── Export/               ← Platform-agnostic exporters
+
+
+
+VM needs authentication via PSDirect
+        │
+        ▼
+┌───────────────────────────────┐
+│ TIER 1: Domain Credentials    │  ← matches VM's detected domain first,
+│   ohdc.com                    │    then rotates through other domains
+│   overheaddoor.com            │
+│   creative.com                │
+└───────────────────────────────┘
+        │ (all failed)
+        ▼
+┌───────────────────────────────┐
+│ TIER 2: Local Credentials     │  ← Windows flavor for Windows VMs,
+│   local:windows (LocalAdmin)  │    Linux flavor for Linux VMs
+│   local:linux (LocalRoot)     │
+└───────────────────────────────┘
+        │ (all failed, Windows VM, EnableLAPSFallback=$true)
+        ▼
+┌───────────────────────────────┐
+│ TIER 3: Windows LAPS Lookup   │  ← retrieves CURRENT local admin password
+│   AD: msLAPS-Password         │    from AD or Entra, uses it for PSDirect,
+│   Entra: Graph API            │    logs the lookup to LAPS-Usage tab
+└───────────────────────────────┘
+        │ (still failed)
+        ▼
+  Mark as AllFailed
+
+
+
+
+one quick question, currently a number of servers run on the legacy laps "Local Administrator Password Solution" which can be seen in the "Applications-Windows_1of2" and other tabs.
+
+Is it also possible to identify if the server is using the "Legacy Laps" vs "Windows Laps" and get the password if needed even from the "Legacy Laps"  Also the info needed for the New LAPS-Usage tab with columns for audit trail: Timestamp, VMName, VMId, Host, Backend, AccountName, LookupResult, PSDirectResult, PasswordAge, RotationDue, DataSource
+
+
+ Check the Directory Attributes (Most Accurate)
+Legacy LAPS uses these AD attributes:
+- ms-Mcs-AdmPwd
+- ms-Mcs-AdmPwdExpirationTime
+Windows LAPS uses these AD attributes:
+- msLAPS-Password
+- msLAPS-PasswordExpirationTime
+- msLAPS-EncryptedPassword (if using encryption mode)
+PowerShell detection (run from any domain‑joined admin machine):
+$comp = "SERVERNAME"
+
+Get-ADComputer $comp -Properties * |
+    Select-Object Name,
+        @{n="LegacyLAPS";e={$_."ms-Mcs-AdmPwd" -ne $null}},
+        @{n="WindowsLAPS";e={$_."msLAPS-Password" -ne $null -or $_."msLAPS-EncryptedPassword" -ne $null}}
+
+
+Interpretation:
+- LegacyLAPS = True → Using old LAPS
+- WindowsLAPS = True → Using new LAPS
+- Both True → Migrated but still has old attributes
+- Both False → Not managed by LAPS at all
+
+B. Check Installed Software / Policies on the Server
+Legacy LAPS
+- Installed MSI: Local Administrator Password Solution
+- GPO settings under:
+Computer Configuration → Policies → Administrative Templates → LAPS
+Windows LAPS
+- Built into Windows Server 2019+ and Windows 10/11
+- GPO settings under:
+Computer Configuration → Policies → Administrative Templates → System → LAPS
+
+C. Check Event Logs
+Legacy LAPS
+Logs under:
+Applications and Services Logs → Microsoft → Windows → LAPS → Operational
+Windows LAPS
+Logs under:
+Applications and Services Logs → Microsoft → Windows → LAPS → Operational
+…but event IDs differ (e.g., 10023, 10024, 10025).
+
+✅ 2. Can You Retrieve Passwords from Legacy LAPS AND Windows LAPS?
+YES — you can retrieve both, as long as:
+- You have AD rights (Read ms-Mcs-AdmPwd or Read msLAPS-Password)
+- The attributes are populated
+- The machine is actually managed by that LAPS version
+PowerShell to retrieve Legacy LAPS password:
+Get-ADComputer "SERVERNAME" -Properties ms-Mcs-AdmPwd, ms-Mcs-AdmPwdExpirationTime |
+    Select-Object Name, 'ms-Mcs-AdmPwd', 'ms-Mcs-AdmPwdExpirationTime'
+
+
+PowerShell to retrieve Windows LAPS password:
+Get-LapsADPassword -Identity "SERVERNAME" -AsPlainText
+
+
+If encryption is enabled, you must have the LAPS Decryption Rights.
+
+✅ 3. How to Populate Your “New LAPS‑Usage” Audit Columns
+You listed these columns:
+- Timestamp
+- VMName
+- VMId
+- Host
+- Backend
+- AccountName
+- LookupResult
+- PSDirectResult
+- PasswordAge
+- RotationDue
+- DataSource
+Below is the mapping logic you should use.
+
+A. DataSource
+Determine which LAPS version provided the password:
+- "LegacyLAPS" → if ms-Mcs-AdmPwd exists
+- "WindowsLAPS" → if msLAPS-Password or Get-LapsADPassword succeeds
+- "None" → if neither exists
+
+B. LookupResult
+This is the result of the AD lookup:
+- "Success"
+- "NotFound"
+- "AccessDenied"
+- "AttributeMissing"
+- "EncryptedPasswordNoRights"
+
+C. PSDirectResult
+If you attempt to validate the password via PowerShell Direct:
+- "Validated"
+- "Failed"
+- "NotAttempted"
+
+D. PasswordAge / RotationDue
+Legacy LAPS
+$exp = [datetime]::FromFileTime($comp.'ms-Mcs-AdmPwdExpirationTime')
+$PasswordAge = (Get-Date) - ($exp.AddDays(-30))   # if 30-day rotation
+$RotationDue = $exp
+
+
+Windows LAPS
+$pwd = Get-LapsADPassword -Identity $comp -AsPlainText
+$PasswordAge = (Get-Date) - $pwd.PasswordUpdateTime
+$RotationDue = $pwd.ExpirationTime
+
+
+
+E. Backend
+This is your source of truth:
+- "AD-Legacy"
+- "AD-WindowsLAPS"
+- "None"
+
+F. AccountName
+Usually:
+- "Administrator"
+- Or your custom local admin name
+
+
+
+
+
+function Get-LapsUnifiedStatus {
+    param(
+        [Parameter(Mandatory)]
+        [string]$ComputerName,
+
+        [string]$VMName,
+        [string]$VMId,
+        [string]$HyperVHost   # FIXED: no longer "Host"
+    )
+
+    $Timestamp = Get-Date
+    $AccountName = "Administrator"
+    $DataSource = "None"
+    $LookupResult = "NotAttempted"
+    $PSDirectResult = "NotAttempted"
+    $PasswordAge = $null
+    $RotationDue = $null
+    $Backend = "None"
+    $Password = $null
+
+    try {
+        $ad = Get-ADComputer $ComputerName -Properties * -ErrorAction Stop
+    }
+    catch {
+        return [pscustomobject]@{
+            Timestamp      = $Timestamp
+            VMName         = $VMName
+            VMId           = $VMId
+            HyperVHost     = $HyperVHost
+            Backend        = "AD"
+            AccountName    = $AccountName
+            LookupResult   = "ADLookupFailed"
+            PSDirectResult = $PSDirectResult
+            PasswordAge    = $PasswordAge
+            RotationDue    = $RotationDue
+            DataSource     = "None"
+        }
+    }
+
+    # ---------------------------
+    # LEGACY LAPS DETECTION
+    # ---------------------------
+    $LegacyPwd = $ad.'ms-Mcs-AdmPwd'
+    $LegacyExp = $ad.'ms-Mcs-AdmPwdExpirationTime'
+
+    if ($LegacyPwd) {
+        $DataSource = "LegacyLAPS"
+        $Backend = "AD-Legacy"
+        $Password = $LegacyPwd
+        $LookupResult = "Success"
+
+        if ($LegacyExp) {
+            $RotationDue = [datetime]::FromFileTime($LegacyExp)
+            $PasswordAge = (Get-Date) - ($RotationDue.AddDays(-30))
+        }
+    }
+
+    # ---------------------------
+    # WINDOWS LAPS DETECTION
+    # ---------------------------
+    if ($DataSource -eq "None") {
+        try {
+            $laps = Get-LapsADPassword -Identity $ComputerName -AsPlainText -ErrorAction Stop
+
+            if ($laps.Password) {
+                $DataSource = "WindowsLAPS"
+                $Backend = "AD-WindowsLAPS"
+                $Password = $laps.Password
+                $LookupResult = "Success"
+                $PasswordAge = (Get-Date) - $laps.PasswordUpdateTime
+                $RotationDue = $laps.ExpirationTime
+            }
+        }
+        catch {
+            if ($_.Exception.Message -like "*access*denied*") {
+                $LookupResult = "AccessDenied"
+            }
+            elseif ($_.Exception.Message -like "*encrypted*") {
+                $LookupResult = "EncryptedPasswordNoRights"
+            }
+            else {
+                $LookupResult = "WindowsLAPSLookupFailed"
+            }
+        }
+    }
+
+    # ---------------------------
+    # PS DIRECT VALIDATION
+    # ---------------------------
+    if ($Password -and $VMName) {
+        try {
+            $session = New-PSSession -VMName $VMName -ErrorAction Stop
+            Invoke-Command -Session $session -ScriptBlock { "Test" } -ErrorAction Stop
+            $PSDirectResult = "Validated"
+            Remove-PSSession $session
+        }
+        catch {
+            $PSDirectResult = "Failed"
+        }
+    }
+
+    # ---------------------------
+    # OUTPUT RECORD
+    # ---------------------------
+    return [pscustomobject]@{
+        Timestamp      = $Timestamp
+        VMName         = $VMName
+        VMId           = $VMId
+        HyperVHost     = $HyperVHost
+        Backend        = $Backend
+        AccountName    = $AccountName
+        LookupResult   = $LookupResult
+        PSDirectResult = $PSDirectResult
+        PasswordAge    = $PasswordAge
+        RotationDue    = $RotationDue
+        DataSource     = $DataSource
+        Password       = $Password
+    }
+}

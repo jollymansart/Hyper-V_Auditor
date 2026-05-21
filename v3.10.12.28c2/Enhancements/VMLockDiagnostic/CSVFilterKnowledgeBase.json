@@ -1,0 +1,135 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "description": "Known file system minifilter drivers classified by CSV compatibility. Used by HyperVInventory-CSVHealth module. Update this file to extend coverage without modifying module code.",
+        "lastUpdated": "2026-04-10",
+        "author": "Michael George"
+    },
+    "incompatible": {
+        "CVDLP": {
+            "vendor": "CommVault",
+            "product": "Data Loss Prevention (Encryption/Shredding)",
+            "severity": "High",
+            "remediation": "Not CSV-compatible. Remove from Hyper-V hosts via CommCell Console or exclude C:\\ClusterStorage paths. VM-level VSA backups do not require CVDLP on the host.",
+            "reference": "Internal incident 2026-04-10: RICTX-UCS-CLS / RICTX-GDTMON-P1"
+        },
+        "CVOFSF": {
+            "vendor": "CommVault",
+            "product": "OnePass/File System filter",
+            "severity": "Medium",
+            "remediation": "May not be CSV-compatible in older versions. Check CommVault support matrix for current agent version."
+        },
+        "mfewfpk": {
+            "vendor": "McAfee",
+            "product": "Host IPS / Endpoint Security",
+            "severity": "High",
+            "remediation": "Known to cause CSV issues. Use McAfee cluster-aware ENS configuration or exclude C:\\ClusterStorage paths."
+        },
+        "MfeAVFK": {
+            "vendor": "McAfee",
+            "product": "Anti-Virus file filter",
+            "severity": "High",
+            "remediation": "Exclude CSV paths. Verify AV exclusions include VHD/VHDX/AVHDX extensions."
+        },
+        "MfeEpfk": {
+            "vendor": "McAfee",
+            "product": "Endpoint Protection filter",
+            "severity": "High",
+            "remediation": "Use McAfee ENS cluster-aware configuration."
+        },
+        "symefa": {
+            "vendor": "Symantec",
+            "product": "Endpoint Protection (SEP)",
+            "severity": "High",
+            "remediation": "Must use SEP cluster-aware configuration. Verify Auto-Protect exclusions cover C:\\ClusterStorage."
+        },
+        "SymEFA": {
+            "vendor": "Symantec",
+            "product": "Extended File Attributes filter",
+            "severity": "High",
+            "remediation": "Component of SEP. Same remediation as symefa."
+        },
+        "SRTSP": {
+            "vendor": "Symantec",
+            "product": "Real-Time Scanner Protection",
+            "severity": "High",
+            "remediation": "Exclude CSV paths in SEP policy."
+        },
+        "eeCtrl": {
+            "vendor": "Symantec",
+            "product": "Eraser Control Driver",
+            "severity": "Medium",
+            "remediation": "Component of SEP DLP. Verify cluster-aware configuration."
+        },
+        "BHDrvx64": {
+            "vendor": "Symantec",
+            "product": "BASH heuristic driver",
+            "severity": "Medium",
+            "remediation": "SEP heuristic component. Verify SEP version supports CSV."
+        },
+        "ehdrv": {
+            "vendor": "ESET",
+            "product": "NOD32 / Endpoint Security filter",
+            "severity": "High",
+            "remediation": "Use ESET cluster-aware configuration. Exclude CSV paths."
+        },
+        "epp64": {
+            "vendor": "Kaspersky",
+            "product": "Endpoint Protection",
+            "severity": "High",
+            "remediation": "Exclude CSV paths. Known CSV incompatibility in older versions."
+        },
+        "klif": {
+            "vendor": "Kaspersky",
+            "product": "Kaspersky Lab Interceptor Filter",
+            "severity": "High",
+            "remediation": "Known CSV incompatibility. Exclude CSV paths and verify Kaspersky version supports clusters."
+        },
+        "TmXPFlt": {
+            "vendor": "Trend Micro",
+            "product": "OfficeScan XP Filter",
+            "severity": "High",
+            "remediation": "Exclude CSV paths in OfficeScan / Apex One policy."
+        },
+        "tmcomm": {
+            "vendor": "Trend Micro",
+            "product": "Common filter",
+            "severity": "High",
+            "remediation": "Component of OfficeScan / Apex One. Exclude CSV paths."
+        },
+        "tmactmon": {
+            "vendor": "Trend Micro",
+            "product": "Activity Monitor",
+            "severity": "Medium",
+            "remediation": "Component of OfficeScan. Exclude CSV paths."
+        },
+        "SAVOnAccess": {
+            "vendor": "Sophos",
+            "product": "On-Access Scanner",
+            "severity": "High",
+            "remediation": "Must use cluster-aware configuration. Exclude CSV paths in Sophos Central policy."
+        },
+        "sld": {
+            "vendor": "Sophos",
+            "product": "Lightweight Driver",
+            "severity": "Medium",
+            "remediation": "Component of Sophos Central. Verify cluster support."
+        }
+    },
+    "compatible": [
+        "FsDepends",
+        "CCFFilter",
+        "WdFilter",
+        "storqosflt",
+        "bindflt",
+        "wcifs",
+        "CldFlt",
+        "FileInfo",
+        "luafv",
+        "npsvctrig",
+        "Wof",
+        "FileCrypt",
+        "NetworkRedirector",
+        "resmon"
+    ]
+}

@@ -769,8 +769,7 @@ Get-MyCustomFunction
 ## Author
 
 Michael George  
-IT INFRASTRUCTURE: Windows and Storage Engineer Administrator  
-Overhead Door Corporation
+
 
 ## License
 

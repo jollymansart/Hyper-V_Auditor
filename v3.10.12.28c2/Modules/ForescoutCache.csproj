@@ -1,0 +1,93 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Common settings -->
+  <PropertyGroup>
+    <TargetFrameworks>net472;net8.0</TargetFrameworks>
+
+    <!-- VERSION INFORMATION -->
+    <Version>1.0.1</Version>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
+    <InformationalVersion>1.0.1</InformationalVersion>
+
+    <!-- ASSEMBLY METADATA -->
+    <AssemblyName>ForescoutCache</AssemblyName>
+    <RootNamespace>ForescoutCache</RootNamespace>
+    <Authors>Michael David George</Authors>
+    <Company>Overhead Door Corporation</Company>
+    <Product>ForescoutCache - High-Performance Forescout Data Cache</Product>
+    <Description>
+      High-performance in-memory cache for Forescout dump files with intelligent incremental loading and memory management.
+      Targeting .NET 8.0 LTS for optimal performance and long-term support. Provides 5-9x faster performance than
+      PowerShell-only solutions with 90% less memory usage.
+    </Description>
+    <Copyright>Copyright © 2025 Michael David George, Overhead Door Corporation</Copyright>
+
+    <!-- We use manual [assembly: ...] attributes -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!-- BUILD SETTINGS -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\ForescoutCache.xml</DocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- Copy NuGet DLLs (e.g., EPPlus) to output -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- Per-TFM language/nullable settings -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- LangVersion can remain implicit (C# 12 on .NET 8) -->
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <!-- Enable nullable in .NET Framework build by using the C# 8 compiler -->
+    <Nullable>enable</Nullable>
+    <LangVersion>8.0</LangVersion>
+    <!-- Disable implicit usings to avoid C# 10 global using generation -->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- EXCLUDE OLD/BACKUP FILES FROM BUILD -->
+  <ItemGroup>
+    <Compile Remove="OLD\**" />
+    <EmbeddedResource Remove="OLD\**" />
+    <None Remove="OLD\**" />
+  </ItemGroup>
+
+  <!-- Common NuGet deps -->
+  <ItemGroup>
+    <!-- EPPlus for Excel reading (LGPL version) -->
+    <PackageReference Include="EPPlus" Version="4.5.3.3" />
+    <!-- System.Management.Automation REMOVED to allow net472 build -->
+  </ItemGroup>
+
+  <!-- TFM-specific dependencies -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <!-- PerformanceCounter version compatible with .NET Framework -->
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- PerformanceCounter for .NET 8 -->
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- EPPLUS LICENSE CONTEXT -->
+  <ItemGroup>
+    <None Update="epplus.config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
+  <Target Name="CreateEpplusConfig" BeforeTargets="Build">
+    <WriteLinesToFile 
+      File="$(OutDir)epplus.config.json" 
+      Lines='{ "EPPlus": { "ExcelPackage": { "LicenseContext": "NonCommercial" } } }' 
+      Overwrite="true" />
+  </Target>
+
+</Project>
